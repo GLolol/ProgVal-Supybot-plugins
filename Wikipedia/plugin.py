@@ -92,8 +92,6 @@ class Wikipedia(callbacks.Plugin):
                            'Did you mean "%s"? ') % (search, redirect)
             addr = self.registryValue('url', msg.args[0]) + \
                    didyoumean[0].get('href')
-            if not article.startswith('http'):
-                article = utils.web.getUrl('https://' + addr)
             if sys.version_info[0] >= 3:
                 article = article.decode()
             tree = lxml.html.document_fromstring(article)
@@ -160,7 +158,7 @@ class Wikipedia(callbacks.Plugin):
         else:
             ##### etree!
             p = tree.xpath("//div[@id='mw-content-text']/p[1]")
-            if len(p) == 0 or addr.endswith('Special:Search'):
+            if len(p) == 0 or 'title=Special:Search' in addr:
                 if 'wikipedia:wikiproject' in addr.lower():
                     reply += format(_('This page appears to be a WikiProject page, '
                                'but it is too complex for us to parse: %u'), addr)
