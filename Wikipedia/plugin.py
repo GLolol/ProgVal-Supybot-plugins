@@ -87,8 +87,9 @@ class Wikipedia(callbacks.Plugin):
                     redirect = redirect.encode('utf-8','replace')
                 if isinstance(search, unicode):
                     search = search.encode('utf-8','replace')
-            reply += _('I didn\'t find anything for "%s". '
-                       'Did you mean "%s"? ') % (search, redirect)
+            if self.registryValue('showRedirects', msg.args[0]):
+                reply += _('I didn\'t find anything for "%s". '
+                           'Did you mean "%s"? ') % (search, redirect)
             addr = self.registryValue('url', msg.args[0]) + \
                    didyoumean[0].get('href')
             if not article.startswith('http'):
@@ -102,8 +103,9 @@ class Wikipedia(callbacks.Plugin):
         searchresults = tree.xpath('//div[@class="searchresults"]/ul/li/a')
         if searchresults:
             redirect = searchresults[0].text_content().strip()
-            reply += _('I didn\'t find anything for "%s", but here\'s the '
-                     'result for "%s": ') % (search, redirect)
+            if self.registryValue('showRedirects', msg.args[0]):
+                reply += _('I didn\'t find anything for "%s", but here\'s the '
+                           'result for "%s": ') % (search, redirect)
             addr = self.registryValue('url', msg.args[0]) + \
                    searchresults[0].get('href')
             article = utils.web.getUrl(addr)
@@ -113,7 +115,7 @@ class Wikipedia(callbacks.Plugin):
             tree = lxml.html.document_fromstring(article)
             search = redirect
         # otherwise, simply return the title and whether it redirected
-        else:
+        elif self.registryValue('showRedirects', msg.args[0]):
             redirect = re.search('\(%s <a href=[^>]*>([^<]*)</a>\)' %
                                  _('Redirected from'), article)
             if redirect:
@@ -128,12 +130,13 @@ class Wikipedia(callbacks.Plugin):
                         redirect = redirect.encode('utf-8','replace')
                 reply += '"%s" (Redirected from "%s"): ' % (title, redirect)
         # extract the address we got it from
-        addr = re.search(' "?<a dir="ltr" href="([^"]*)"?>', article)
-        addr = addr.group(1)
-        # remove the &oldid part
-        addr = addr.split('&amp;oldid=')[0]
-        # force serving HTTPS links
-        addr = 'https://' + addr.split("//")[1]
+        addr = tree.find(".//link[@rel='canonical']")
+        addr = addr.attrib['href']
+        try:
+            # force serving HTTPS links
+            addr = 'https://' + addr.split("//")[1]
+        except:
+            pass
         # check if it's a disambiguation page
         disambig = tree.xpath('//table[@id="disambigbox"]') or \
             tree.xpath('//table[@id="setindexbox"]')
@@ -165,7 +168,12 @@ class Wikipedia(callbacks.Plugin):
                     reply += _('Not found, or page malformed.')
             else:
                 p = p[0]
+                # Replace <b> tags with IRC-style bold, this has to be
+                # done indirectly because unescaped '\x02' is invalid in XML
+                for b_tag in p.xpath('//b'):
+                    b_tag.text = "&#x02;%s&#x02;" % b_tag.text
                 p = p.text_content()
+                p = p.replace('&#x02;', '\x02')
                 p = p.strip()
                 if sys.version_info[0] < 3:
                     if isinstance(p, unicode):
