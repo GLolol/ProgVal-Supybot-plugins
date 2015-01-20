@@ -63,15 +63,19 @@ class Wikipedia(callbacks.Plugin):
 
 
     @internationalizeDocstring
-    def wiki(self, irc, msg, args, search):
-        """<search term>
+    def wiki(self, irc, msg, args, optlist, search):
+        """[--site <site>] <search term>
 
-        Returns the first paragraph of a Wikipedia article"""
+        Returns the first paragraph of a Wikipedia article."""
         reply = ''
+        optlist = dict(optlist)
+        if 'site' in optlist:
+            baseurl = optlist['site']
+        else:
+            baseurl = self.registryValue('url', msg.args[0])
         # first, we get the page
         addr = 'https://%s/wiki/Special:Search?search=%s' % \
-                    (self.registryValue('url', msg.args[0]),
-                     quote_plus(search))
+                    (baseurl, quote_plus(search))
         article = utils.web.getUrl(addr)
         if sys.version_info[0] >= 3:
             article = article.decode()
@@ -183,7 +187,7 @@ class Wikipedia(callbacks.Plugin):
         # Remove inline citations (text[1][2][3], etc.)
         reply = re.sub('\[\d+\]', '', reply)
         irc.reply(reply)
-    wiki = wrap(wiki, ['text'])
+    wiki = wrap(wiki, [getopts({'site': 'somethingWithoutSpaces'}), 'text'])
 
 
 
