@@ -37,12 +37,25 @@ class WikipediaTestCase(PluginTestCase):
     if network:
         def testWiki(self):
             self.assertRegexp('wiki Monty Python',
-                              '^Monty Python \(sometimes known as The Pythons\).*')
-            self.assertRegexp('wiki Python', '.*is a disambiguation page.*')
-            self.assertRegexp('wiki Foo', '"Foobar" \(Redirect from "Foo"\): '
-                                          'The terms foobar.*')
+                              '\x02Monty Python\x02 \(sometimes known as \x02The Pythons\x02\)')
             self.assertRegexp('wiki roegdfjpoepo',
                               'Not found, or page malformed.*')
+
+        def testDisambiguation(self):
+            self.assertRegexp('wiki Python', 'is a disambiguation page.*'
+                              'Possible results include:.*?,.*?,')
+            self.assertRegexp('wiki Windows 3', '.*is a disambiguation page.*'
+                              'Possible results include:.*?Windows 3.0.*?,.*?Windows 3.1x')
+
+        def testWikiRedirects(self):
+            # Via did you mean clause
+            self.assertRegexp('wiki George Washingon',
+                              'first President of the United States')
+            # Via Search find-first-result snarfer
+            self.assertRegexp('wiki synnero',
+                              'A \x02synchro\x02 is')
+            self.assertRegexp('wiki Foo', '"Foobar" \(Redirected from "Foo"\): '
+                                          'The terms \x02foobar\x02')
 
         def testStripInlineCitations(self):
             self.assertNotRegexp('wiki UNICEF', '\[\d+\]')

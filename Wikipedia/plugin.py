@@ -94,8 +94,9 @@ class Wikipedia(callbacks.Plugin):
             if self.registryValue('showRedirects', msg.args[0]):
                 reply += _('I didn\'t find anything for "%s". '
                            'Did you mean "%s"? ') % (search, redirect)
-            addr = self.registryValue('url', msg.args[0]) + \
-                   didyoumean[0].get('href')
+            addr = "https://%s/wiki/%s" % (baseurl,
+                   didyoumean[0].get('href'))
+            article = utils.web.getUrl(addr)
             if sys.version_info[0] >= 3:
                 article = article.decode()
             tree = lxml.html.document_fromstring(article)
