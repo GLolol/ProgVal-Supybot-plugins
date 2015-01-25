@@ -20,6 +20,7 @@ script:
   - echo $PYTHON_MAJOR_VERSION
   - if [ "$PYTHON_MAJOR_VERSION" = "3" ]; then export DISABLED_PLUGINS="--exclude ./Twitter --exclude ./TwitterStream --exclude ./MegaHAL --exclude GUI"; else export DISABLED_PLUGINS=""; fi
   - supybot-test --plugins-dir=. --no-network --exclude=./NoLatin1 $DISABLED_PLUGINS
+  - supybot-test Wikipedia/
 notifications:
     email: false
 matrix:
