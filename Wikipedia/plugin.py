@@ -163,7 +163,7 @@ class Wikipedia(callbacks.Plugin):
         else:
             ##### etree!
             p = tree.xpath("//div[@id='mw-content-text']/p[1]")
-            if len(p) == 0 or 'title=Special:Search' in addr:
+            if len(p) == 0 or 'wiki/Special:Search' in addr:
                 if 'wikipedia:wikiproject' in addr.lower():
                     reply += format(_('This page appears to be a WikiProject page, '
                                'but it is too complex for us to parse: %u'), addr)
