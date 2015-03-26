@@ -1,5 +1,5 @@
 ###
-# Copyright (c) 2014, Valentin Lorentz
+# Copyright (c) 2015, Valentin Lorentz
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,48 +28,30 @@
 
 ###
 
-from supybot.test import *
-
-class PPPTestCase(PluginTestCase):
-    plugins = ('PPP', 'Config')
-
-    def testBasics(self):
-        self.assertResponse('query What is the capital of Australia?',
-                'Canberra')
-
-    def testBold(self):
-        self.assertResponse('triples What is the capital of Australia?',
-                '(Australia, capital, \x02?\x02)')
-
-    def testList(self):
-        self.assertRegexp('query What are the capitals of the European Union?',
-                '^(Brussels and Strasbourg|Strasbourg and Brussels)$')
-        self.assertRegexp('query '
-                'Who is the author of “Use of A Network Enabled Server System '
-                'for a Sparse Linear Algebra Application”?',
-                'Eddy Caron')
-
-    def testBadApi(self):
-        self.assertNotError('config plugins.PPP.api http://foo/')
-        try:
-            self.assertResponse('query foo',
-                    'Error: Could not connect to the API.')
-        finally:
-            self.assertNotError('config setdefault plugins.PPP.api')
-
-    def testHeadline(self):
-        self.assertNotError('config plugins.PPP.formats.query '
-                            '"$value ($headline)"')
-        try:
-            self.assertRegexp('query What is Brussels?',
-                    '^Brussels.*The City of Brussels')
-        finally:
-            self.assertNotError('config setdefault plugins.PPP.formats.query')
+import supybot.conf as conf
+import supybot.registry as registry
+try:
+    from supybot.i18n import PluginInternationalization
+    _ = PluginInternationalization('CrousLyon')
+except:
+    # Placeholder that allows to run the plugin on a bot
+    # without the i18n module
+    _ = lambda x: x
 
 
-if not network:
-    class PPPTestCase(PluginTestCase):
-        plugins = ('PPP',)
+def configure(advanced):
+    # This will be called by supybot to configure this module.  advanced is
+    # a bool that specifies whether the user identified themself as an advanced
+    # user or not.  You should effect your configuration by manipulating the
+    # registry as appropriate.
+    from supybot.questions import expect, anything, something, yn
+    conf.registerPlugin('CrousLyon', True)
+
+
+CrousLyon = conf.registerPlugin('CrousLyon')
+# This is where your configuration variables (if any) should go.  For example:
+# conf.registerGlobalValue(CrousLyon, 'someConfigVariableName',
+#     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
 
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

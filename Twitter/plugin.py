@@ -63,6 +63,13 @@ except:
     _ = lambda x:x
     internationalizeDocstring = lambda x:x
 
+# We don't use oauth2 directly, but we try to import it here
+# so we can tell the user it is missing.
+try:
+    import oauth2
+except ImportError:
+    raise callbacks.Error('You need the python-oauth2 library.')
+
 try:
     import twitter
 except ImportError:
@@ -91,14 +98,14 @@ class ExtendedApi(twitter.Api):
         Returns:
         A twitter.Status instance representing the retweet posted
         '''
-        if hasattr(api, '_oauth_consumer') and not api._oauth_consumer:
+        if hasattr(self, '_oauth_consumer') and not self._oauth_consumer:
             raise TwitterError("The twitter.Api instance must be authenticated.")
         try:
             if int(id) <= 0:
                 raise TwitterError("'id' must be a positive number")
         except ValueError:
             raise TwitterError("'id' must be an integer")
-        url = 'http://api.twitter.com/1/statuses/retweet/%s.json' % id
+        url = 'https://api.twitter.com/1.1/statuses/retweet/%s.json' % id
         data = self._FetchUrl(url, post_data={'dummy': None})
         data = json.loads(data)
         self._CheckForTwitterError(data)
@@ -417,7 +424,7 @@ class Twitter(callbacks.Plugin):
             api.PostRetweet(id_)
             irc.replySuccess()
         except twitter.TwitterError as e:
-            irc.error(e.args[0])
+            irc.error(str(e.args[0]))
     retweet = wrap(retweet, ['user', ('checkChannelCapability', 'twitterpost'),
             'somethingWithoutSpaces'])
 

@@ -1,5 +1,5 @@
 ###
-# Copyright (c) 2014, Valentin Lorentz
+# Copyright (c) 2015, Valentin Lorentz
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,46 +30,14 @@
 
 from supybot.test import *
 
-class PPPTestCase(PluginTestCase):
-    plugins = ('PPP', 'Config')
 
-    def testBasics(self):
-        self.assertResponse('query What is the capital of Australia?',
-                'Canberra')
+class JsonTestCase(PluginTestCase):
+    plugins = ('Json',)
 
-    def testBold(self):
-        self.assertResponse('triples What is the capital of Australia?',
-                '(Australia, capital, \x02?\x02)')
-
-    def testList(self):
-        self.assertRegexp('query What are the capitals of the European Union?',
-                '^(Brussels and Strasbourg|Strasbourg and Brussels)$')
-        self.assertRegexp('query '
-                'Who is the author of “Use of A Network Enabled Server System '
-                'for a Sparse Linear Algebra Application”?',
-                'Eddy Caron')
-
-    def testBadApi(self):
-        self.assertNotError('config plugins.PPP.api http://foo/')
-        try:
-            self.assertResponse('query foo',
-                    'Error: Could not connect to the API.')
-        finally:
-            self.assertNotError('config setdefault plugins.PPP.api')
-
-    def testHeadline(self):
-        self.assertNotError('config plugins.PPP.formats.query '
-                            '"$value ($headline)"')
-        try:
-            self.assertRegexp('query What is Brussels?',
-                    '^Brussels.*The City of Brussels')
-        finally:
-            self.assertNotError('config setdefault plugins.PPP.formats.query')
-
-
-if not network:
-    class PPPTestCase(PluginTestCase):
-        plugins = ('PPP',)
+    def testGet(self):
+        self.assertResponse(r'get ".bar string:first-child" '
+                r'"{\"foo\": [\"foobar\"], \"bar\": [\"baz\", \"qux\"]}"''',
+                'baz')
 
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

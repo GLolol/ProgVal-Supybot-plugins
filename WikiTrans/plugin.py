@@ -29,6 +29,9 @@
 ###
 
 import sys
+import json
+import operator
+import itertools
 
 import supybot.utils as utils
 from supybot.commands import *
@@ -54,13 +57,60 @@ class Untranslatable(Exception):
 class ApiError(Exception):
     pass
 
+MAX_ENTITIES_SEARCH = 50
+wikidata_search_url = 'https://www.wikidata.org/w/api.php?format=json&' + \
+        'action=wbsearchentities&language=%(language)s&search=%(search)s'
+wikidata_query_url = 'https://www.wikidata.org/w/api.php?format=json&' + \
+        'action=wbgetentities&ids=%(ids)s&props=aliases|labels&' + \
+        'languages=%(languages)s'
+def wikidata_translate(src, target, word):
+    # Get matching entity IDs
+    url = wikidata_search_url % {'language': src, 'search': quote_plus(word)}
+    data = json.loads(utils.web.getUrl(url).decode())
+    if not data['search']:
+        raise WordNotFound()
+    entities = map(operator.itemgetter('id'), data['search'])
+
+    # Get labels of those entities
+    entities_str = '|'.join(itertools.islice(entities, MAX_ENTITIES_SEARCH))
+    url = wikidata_query_url % {'languages': '%s|%s' % (src, target),
+                                'ids': entities_str}
+    data = json.loads(utils.web.getUrl(url).decode())
+
+    if 'entities' not in data:
+        # No 'entity' attribute -> those entities have no labels
+        # in the desired langues.
+        raise Untranslatable()
+
+    # Remove entities whose label/aliases do not match exactly
+    entities = data['entities']
+    if sys.version_info[0] < 3:
+        word = word.decode('utf8')
+    word = word.lower()
+    pred = lambda x: (word == x['labels'][src]['value'].lower() or
+                      word in (y['value'].lower()
+                               for y in x.get('aliases', {}).get(src, [])))
+    entities = filter(pred, entities.values())
+
+    # Join all possible translations
+    r = format('%L', [x['labels'][target]['value']
+                      for x in entities
+                      if target in x.get('labels', {})])
+
+    if not r:
+        raise Untranslatable()
+    else:
+        return r
+
+
+
 # lllimit means "langlink limits". If we don't give this parameter, output
 # will be restricted to the ten first links.
-url = 'http://%s.wikipedia.org/w/api.php?action=query&format=xml&' + \
-        'prop=langlinks&redirects&lllimit=300&titles=%s'
-def translate(src, target, word):
+wikipedia_url = 'http://%s.wikipedia.org/w/api.php?action=query&' + \
+        'format=xml&prop=langlinks&redirects&lllimit=300&titles=%s'
+def wikipedia_translate(src, target, word):
     try:
-        node = minidom.parse(utils.web.getUrlFd(url % (src,
+        node = minidom.parse(utils.web.getUrlFd(wikipedia_url % (src,
                 quote_plus(word))))
     except:
         # Usually an urllib error
@@ -76,7 +126,7 @@ def translate(src, target, word):
         # If this page is a redirection to another:
         if node.nodeName in ('redirects', 'normalized'):
             newword = node.firstChild.getAttribute('to')
-            return translate(src, target, newword)
+            return wikipedia_translate(src, target, newword)
         expectedNode = expectedNodes.pop(0)
         # Iterate while the node is not valid
         while node.nodeName != expectedNode:
@@ -100,26 +150,61 @@ def translate(src, target, word):
     # No lang links available for the target language
     raise Untranslatable()
 
+def translate(src, target, word):
+    try:
+        return wikidata_translate(src, target, word)
+    except (WordNotFound, Untranslatable) as e:
+        return wikipedia_translate(src, target, word)
+
 @internationalizeDocstring
 class WikiTrans(callbacks.Plugin):
     """Add the help for "@plugin help WikiTrans" here
     This should describe *how* to use this plugin."""
     threaded = True
+
     def translate(self, irc, msg, args, src, target, word):
+        """<from language> <to language> <word>
+
+        Translates the <word> (also works with expressions) using Wikidata
+        labels and Wikipedia interlanguage links."""
+        try:
+            irc.reply(translate(src, target, word))
+        except (WordNotFound, Untranslatable):
+            irc.error(_('This word can\'t be found or translated using '
+                        'Wikidata and Wikipedia'))
+        except ApiError:
+            irc.error(_('Something went wrong with Wikipedia/data API.'))
+    translate = wrap(translate, ['something', 'something', 'text'])
+
+    def wikidata(self, irc, msg, args, src, target, word):
         """<from language> <to language> <word>
 
         Translates the <word> (also works with expressions) using Wikipedia
         interlanguage links."""
         try:
-            irc.reply(translate(src, target, word))
+            irc.reply(wikidata_translate(src, target, word))
+        except WordNotFound:
+            irc.error(_('This word can\'t be found on Wikidata'))
+        except Untranslatable:
+            irc.error(_('No translation found'))
+        except ApiError:
+            irc.error(_('Something went wrong with Wikidata API.'))
+    wikidata = wrap(wikidata, ['something', 'something', 'text'])
+
+    def wikipedia(self, irc, msg, args, src, target, word):
+        """<from language> <to language> <word>
+
+        Translates the <word> (also works with expressions) using Wikipedia
+        interlanguage links."""
+        try:
+            irc.reply(wikipedia_translate(src, target, word))
         except WordNotFound:
             irc.error(_('This word can\'t be found on Wikipedia'))
         except Untranslatable:
             irc.error(_('No translation found'))
         except ApiError:
             irc.error(_('Something went wrong with Wikipedia API.'))
-
-    translate = wrap(translate, ['something', 'something', 'text'])
+    wikipedia = wrap(wikipedia, ['something', 'something', 'text'])
 
 
 

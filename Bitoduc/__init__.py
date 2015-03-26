@@ -1,5 +1,5 @@
 ###
-# Copyright (c) 2014, Valentin Lorentz
+# Copyright (c) 2015, Valentin Lorentz
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,48 +28,41 @@
 
 ###
 
-from supybot.test import *
+"""
+Bitoduc: Interface to bitoduc.fr
+"""
 
-class PPPTestCase(PluginTestCase):
-    plugins = ('PPP', 'Config')
+import supybot
+import supybot.world as world
 
-    def testBasics(self):
-        self.assertResponse('query What is the capital of Australia?',
-                'Canberra')
+# Use this for the version of this plugin.  You may wish to put a CVS keyword
+# in here if you're keeping the plugin in CVS or some similar system.
+__version__ = ""
 
-    def testBold(self):
-        self.assertResponse('triples What is the capital of Australia?',
-                '(Australia, capital, \x02?\x02)')
+# XXX Replace this with an appropriate author or supybot.Author instance.
+__author__ = supybot.authors.unknown
 
-    def testList(self):
-        self.assertRegexp('query What are the capitals of the European Union?',
-                '^(Brussels and Strasbourg|Strasbourg and Brussels)$')
-        self.assertRegexp('query '
-                'Who is the author of “Use of A Network Enabled Server System '
-                'for a Sparse Linear Algebra Application”?',
-                'Eddy Caron')
+# This is a dictionary mapping supybot.Author instances to lists of
+# contributions.
+__contributors__ = {}
 
-    def testBadApi(self):
-        self.assertNotError('config plugins.PPP.api http://foo/')
-        try:
-            self.assertResponse('query foo',
-                    'Error: Could not connect to the API.')
-        finally:
-            self.assertNotError('config setdefault plugins.PPP.api')
+# This is a url where the most recent plugin package can be downloaded.
+__url__ = ''
 
-    def testHeadline(self):
-        self.assertNotError('config plugins.PPP.formats.query '
-                            '"$value ($headline)"')
-        try:
-            self.assertRegexp('query What is Brussels?',
-                    '^Brussels.*The City of Brussels')
-        finally:
-            self.assertNotError('config setdefault plugins.PPP.formats.query')
+from . import config
+from . import plugin
+from imp import reload
+# In case we're being reloaded.
+reload(config)
+reload(plugin)
+# Add more reloads here if you add third-party modules and want them to be
+# reloaded when this plugin is reloaded.  Don't forget to import them as well!
 
+if world.testing:
+    from . import test
 
-if not network:
-    class PPPTestCase(PluginTestCase):
-        plugins = ('PPP',)
+Class = plugin.Class
+configure = config.configure
 
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
