@@ -69,12 +69,21 @@ class Wikipedia(callbacks.Plugin):
         Returns the first paragraph of a Wikipedia article."""
         reply = ''
         optlist = dict(optlist)
+        # Different instances of MediaWiki use different URLs... This tries
+        # to make the parser work for most sites, but still use resonable defaults
+        # such as filling in http:// and appending /wiki to links...
+
+        # Try using '--site lyrics.wikia.com' or '--site wiki.archlinux.org/index.php'.
         if 'site' in optlist:
             baseurl = optlist['site']
+            if 'wikia.com' in baseurl:
+                baseurl += '/wiki'
+            if not baseurl.lower().startswith(('http://', 'https://')):
+                baseurl = 'http://' + baseurl
         else:
-            baseurl = self.registryValue('url', msg.args[0])
+            baseurl = 'https://%s/wiki' % self.registryValue('url', msg.args[0])
         # first, we get the page
-        addr = 'https://%s/wiki/Special:Search?search=%s' % \
+        addr = '%s/Special:Search?search=%s' % \
                     (baseurl, quote_plus(search))
         article = utils.web.getUrl(addr)
         if sys.version_info[0] >= 3:
@@ -94,7 +103,7 @@ class Wikipedia(callbacks.Plugin):
             if self.registryValue('showRedirects', msg.args[0]):
                 reply += _('I didn\'t find anything for "%s". '
                            'Did you mean "%s"? ') % (search, redirect)
-            addr = "https://%s/wiki/%s" % (baseurl,
+            addr = "%s/%s" % (baseurl,
                    didyoumean[0].get('href'))
             article = utils.web.getUrl(addr)
             if sys.version_info[0] >= 3:
@@ -132,12 +141,19 @@ class Wikipedia(callbacks.Plugin):
                     if isinstance(redirect, unicode):
                         redirect = redirect.encode('utf-8','replace')
                 reply += '"%s" (Redirected from "%s"): ' % (title, redirect)
+        self.log.info(addr)
         # extract the address we got it from
-        addr = tree.find(".//link[@rel='canonical']")
-        addr = addr.attrib['href']
+        # We only care about formatting this if we're actually on Wikipedia
+        # (i.e. not using --site <site>)
         try:
-            # force serving HTTPS links
-            addr = 'https://' + addr.split("//")[1]
+            if 'site' not in optlist:
+                addr = tree.find(".//link[@rel='canonical']")
+                addr = addr.attrib['href']
+                # force serving HTTPS links
+                addr = 'https://' + addr.split("//")[1]
+            else:
+                addr = tree.find(".//div[@class='printfooter']/a").attrib['href']
+                addr = re.sub('([&?]|(amp;)?)oldid=\d+$', '', addr)
         except:
             pass
         # check if it's a disambiguation page
