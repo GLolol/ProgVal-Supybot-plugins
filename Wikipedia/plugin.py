@@ -131,17 +131,19 @@ class Wikipedia(callbacks.Plugin):
             redirect = re.search('\(%s <a href=[^>]*>([^<]*)</a>\)' %
                                  _('Redirected from'), article)
             if redirect:
-                redirect = tree.xpath('//span[@class="mw-redirectedfrom"]/a')[0]
-                redirect = redirect.text_content().strip()
-                title = tree.xpath('//*[@class="firstHeading"]')
-                title = title[0].text_content().strip()
-                if sys.version_info[0] < 3:
-                    if isinstance(title, unicode):
-                        title = title.encode('utf-8','replace')
-                    if isinstance(redirect, unicode):
-                        redirect = redirect.encode('utf-8','replace')
-                reply += '"%s" (Redirected from "%s"): ' % (title, redirect)
-        self.log.info(addr)
+                try:
+                    redirect = tree.xpath('//span[@class="mw-redirectedfrom"]/a')[0]
+                    redirect = redirect.text_content().strip()
+                    title = tree.xpath('//*[@class="firstHeading"]')
+                    title = title[0].text_content().strip()
+                    if sys.version_info[0] < 3:
+                        if isinstance(title, unicode):
+                            title = title.encode('utf-8','replace')
+                        if isinstance(redirect, unicode):
+                            redirect = redirect.encode('utf-8','replace')
+                    reply += '"%s" (Redirected from "%s"): ' % (title, redirect)
+                except IndexError:
+                    pass
         # extract the address we got it from
         # We only care about formatting this if we're actually on Wikipedia
         # (i.e. not using --site <site>)
