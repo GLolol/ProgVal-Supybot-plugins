@@ -1,6 +1,5 @@
-# -*- coding: utf8 -*-
 ###
-# Copyright (c) 2013, Valentin Lorentz
+# Copyright (c) 2015, Valentin Lorentz
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,41 +28,41 @@
 
 ###
 
-import sys
-from unittest import skip
-from supybot.test import *
+"""
+PypySandbox: Interprets arbitrary Python code from IRC, using Pypy's sandbox.
+"""
 
-class CoinpanTestCase(ChannelPluginTestCase):
-    plugins = ('Coinpan',)
-    config = {'supybot.plugins.Coinpan.enable': True}
+import supybot
+import supybot.world as world
 
-    def testCoinpan(self):
-        self.assertSnarfNoResponse('foo')
-        self.assertSnarfResponse('coin coin', 'pan pan')
-        self.assertSnarfResponse('foo coin bar', 'foo pan bar')
-        self.assertSnarfResponse('foo COIN bar', 'foo PAN bar')
-        self.assertSnarfResponse('foo Coin bar', 'foo Pan bar')
-        self.assertSnarfResponse('foo c01n bar', 'foo p4n bar')
+# Use this for the version of this plugin.  You may wish to put a CVS keyword
+# in here if you're keeping the plugin in CVS or some similar system.
+__version__ = ""
 
-        self.assertSnarfResponse('foo coïn bar', 'foo pän bar')
-        self.assertSnarfResponse('foo cöïn bar', 'foo pän bar')
-        self.assertSnarfResponse('foo côîn bar', 'foo pân bar')
-        self.assertSnarfResponse('foo côïn bar', 'foo COINCOINCOINPANPANPAN bar')
-        self.assertSnarfResponse('foo coiÑ bar', 'foo paÑ bar')
-        self.assertSnarfResponse('foo KOIN bar', 'foo PANG bar')
+# XXX Replace this with an appropriate author or supybot.Author instance.
+__author__ = supybot.authors.unknown
 
-        self.assertSnarfResponse('foo KOIN >o_/ bar', 'foo PANG >x_/ bar')
+# This is a dictionary mapping supybot.Author instances to lists of
+# contributions.
+__contributors__ = {}
 
-        self.assertSnarfResponse('foo CION bar', 'foo P∀N bar')
-        self.assertSnarfResponse('foo cion bar', 'foo pɐn bar')
+# This is a url where the most recent plugin package can be downloaded.
+__url__ = ''
 
-        self.assertSnarfResponse('foo nioc bar', 'foo nap bar')
-        self.assertSnarfResponse('foo niØc bar', 'foo n\u0336ap bar')
+from . import config
+from . import plugin
+from imp import reload
+# In case we're being reloaded.
+reload(config)
+reload(plugin)
+# Add more reloads here if you add third-party modules and want them to be
+# reloaded when this plugin is reloaded.  Don't forget to import them as well!
 
-    if sys.version_info < (2, 7, 0):
-        def testCoinpan(self):
-            pass
-    elif sys.version_info < (3, 0, 0):
-        testCoinpan = skip('Plugin not compatible with Python2.')(testCoinpan)
+if world.testing:
+    from . import test
+
+Class = plugin.Class
+configure = config.configure
+
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

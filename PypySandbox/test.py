@@ -1,6 +1,5 @@
-# -*- coding: utf8 -*-
 ###
-# Copyright (c) 2013, Valentin Lorentz
+# Copyright (c) 2015, Valentin Lorentz
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,41 +28,30 @@
 
 ###
 
-import sys
-from unittest import skip
 from supybot.test import *
 
-class CoinpanTestCase(ChannelPluginTestCase):
-    plugins = ('Coinpan',)
-    config = {'supybot.plugins.Coinpan.enable': True}
 
-    def testCoinpan(self):
-        self.assertSnarfNoResponse('foo')
-        self.assertSnarfResponse('coin coin', 'pan pan')
-        self.assertSnarfResponse('foo coin bar', 'foo pan bar')
-        self.assertSnarfResponse('foo COIN bar', 'foo PAN bar')
-        self.assertSnarfResponse('foo Coin bar', 'foo Pan bar')
-        self.assertSnarfResponse('foo c01n bar', 'foo p4n bar')
+class PypySandboxTestCase(PluginTestCase):
+    plugins = ('PypySandbox', 'Config')
+    config = {
+            'supybot.plugins.PypySandbox.timeout': 3,
+            'supybot.plugins.PypySandbox.heapsize': 1000,
+            }
 
-        self.assertSnarfResponse('foo coïn bar', 'foo pän bar')
-        self.assertSnarfResponse('foo cöïn bar', 'foo pän bar')
-        self.assertSnarfResponse('foo côîn bar', 'foo pân bar')
-        self.assertSnarfResponse('foo côïn bar', 'foo COINCOINCOINPANPANPAN bar')
-        self.assertSnarfResponse('foo coiÑ bar', 'foo paÑ bar')
-        self.assertSnarfResponse('foo KOIN bar', 'foo PANG bar')
+    def testBase(self):
+        self.assertResponse('sandbox print(4+5)', '9')
 
-        self.assertSnarfResponse('foo KOIN >o_/ bar', 'foo PANG >x_/ bar')
+    def testTimeout(self):
+        self.assertResponse('sandbox while True: pass', 'Error: Timeout.')
 
-        self.assertSnarfResponse('foo CION bar', 'foo P∀N bar')
-        self.assertSnarfResponse('foo cion bar', 'foo pɐn bar')
+    def testException(self):
+        self.assertResponse('sandbox raise ValueError("foo")',
+                'ValueError: foo')
 
-        self.assertSnarfResponse('foo nioc bar', 'foo nap bar')
-        self.assertSnarfResponse('foo niØc bar', 'foo n\u0336ap bar')
+    def testMemory(self):
+        self.assertResponse("""sandbox "while True: """
+                """s = s+'a'*10000 if 's' in locals() else ''" """,
+                'MemoryError')
 
-    if sys.version_info < (2, 7, 0):
-        def testCoinpan(self):
-            pass
-    elif sys.version_info < (3, 0, 0):
-        testCoinpan = skip('Plugin not compatible with Python2.')(testCoinpan)
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

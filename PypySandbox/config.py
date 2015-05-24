@@ -1,6 +1,5 @@
-# -*- coding: utf8 -*-
 ###
-# Copyright (c) 2013, Valentin Lorentz
+# Copyright (c) 2015, Valentin Lorentz
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,41 +28,36 @@
 
 ###
 
-import sys
-from unittest import skip
-from supybot.test import *
+import supybot.conf as conf
+import supybot.registry as registry
+try:
+    from supybot.i18n import PluginInternationalization
+    _ = PluginInternationalization('PypySandbox')
+except:
+    # Placeholder that allows to run the plugin on a bot
+    # without the i18n module
+    _ = lambda x: x
 
-class CoinpanTestCase(ChannelPluginTestCase):
-    plugins = ('Coinpan',)
-    config = {'supybot.plugins.Coinpan.enable': True}
 
-    def testCoinpan(self):
-        self.assertSnarfNoResponse('foo')
-        self.assertSnarfResponse('coin coin', 'pan pan')
-        self.assertSnarfResponse('foo coin bar', 'foo pan bar')
-        self.assertSnarfResponse('foo COIN bar', 'foo PAN bar')
-        self.assertSnarfResponse('foo Coin bar', 'foo Pan bar')
-        self.assertSnarfResponse('foo c01n bar', 'foo p4n bar')
+def configure(advanced):
+    # This will be called by supybot to configure this module.  advanced is
+    # a bool that specifies whether the user identified themself as an advanced
+    # user or not.  You should effect your configuration by manipulating the
+    # registry as appropriate.
+    from supybot.questions import expect, anything, something, yn
+    conf.registerPlugin('PypySandbox', True)
 
-        self.assertSnarfResponse('foo coïn bar', 'foo pän bar')
-        self.assertSnarfResponse('foo cöïn bar', 'foo pän bar')
-        self.assertSnarfResponse('foo côîn bar', 'foo pân bar')
-        self.assertSnarfResponse('foo côïn bar', 'foo COINCOINCOINPANPANPAN bar')
-        self.assertSnarfResponse('foo coiÑ bar', 'foo paÑ bar')
-        self.assertSnarfResponse('foo KOIN bar', 'foo PANG bar')
 
-        self.assertSnarfResponse('foo KOIN >o_/ bar', 'foo PANG >x_/ bar')
+PypySandbox = conf.registerPlugin('PypySandbox')
+# This is where your configuration variables (if any) should go.  For example:
+# conf.registerGlobalValue(PypySandbox, 'someConfigVariableName',
+#     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
+conf.registerGlobalValue(PypySandbox, 'heapsize',
+    registry.PositiveInteger(1000000, _("""Maximum memory allowed for
+    sandboxed processes.""")))
+conf.registerGlobalValue(PypySandbox, 'timeout',
+    registry.PositiveInteger(3, _("""Maximum execution time allowed for
+    sandboxed processes.""")))
 
-        self.assertSnarfResponse('foo CION bar', 'foo P∀N bar')
-        self.assertSnarfResponse('foo cion bar', 'foo pɐn bar')
-
-        self.assertSnarfResponse('foo nioc bar', 'foo nap bar')
-        self.assertSnarfResponse('foo niØc bar', 'foo n\u0336ap bar')
-
-    if sys.version_info < (2, 7, 0):
-        def testCoinpan(self):
-            pass
-    elif sys.version_info < (3, 0, 0):
-        testCoinpan = skip('Plugin not compatible with Python2.')(testCoinpan)
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

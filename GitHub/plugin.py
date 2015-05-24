@@ -202,7 +202,7 @@ class GitHub(callbacks.Plugin):
                     url = filter(lambda x:x.startswith('Location: '),
                             f.headers.headers)[0].split(': ', 1)[1].strip()
             except Exception as e:
-                log.error('Cannot connect to git.io: %s' % e)
+                log.error('Cannot connect to git.io: %s (%s)' % (e, url))
                 return None
             return url
         def _createPrivmsg(self, irc, channel, payload, event, hidden=None):
@@ -212,21 +212,23 @@ class GitHub(callbacks.Plugin):
             if not format_.strip():
                 return
             repl = flatten_subdicts(payload)
-            try_gitio = True
             for (key, value) in dict(repl).items():
-                if key.endswith('url'):
-                    if try_gitio:
-                        url = self._shorten_url(value)
-                    else:
-                        url = None
+                if key.endswith('url') and value and \
+                        value.startswith('http') and \
+                        'github.com' in value.split('/')[0:3]:
+                    url = self._shorten_url(value)
                     if url:
                         repl[key + '__tiny'] = url
                     else:
                         repl[key + '__tiny'] = value
-                        try_gitio = False
+                elif key.endswith('url'):
+                    repl[key + '__tiny'] = value
+                elif key.endswith(('commit__id', 'commit_id')):
+                    repl[key + '__short'] = value[0:7]
                 elif key.endswith('ref'):
                     try:
-                        repl[key + '__branch'] = value.split('/', 2)[2]
+                        repl[key + '__branch'] = value.split('/', 2)[2] \
+                                if value else None
                     except IndexError:
                         pass
                 elif isinstance(value, str) or \
@@ -308,6 +310,16 @@ class GitHub(callbacks.Plugin):
                             payload2['__commit'] = commit
                             self._createPrivmsg(irc, channel, payload2,
                                     'push', hidden)
+                elif event == 'gollum':
+                    pages = payload['pages']
+                    if len(pages) == 0:
+                        log.warning('GitHub gollum hook called without any page.')
+                    else:
+                        payload2 = dict(payload)
+                        for page in pages:
+                            payload2['__page'] = page
+                            self._createPrivmsg(irc, channel, payload2,
+                                    'gollum', None)
                 else:
                     self._createPrivmsg(irc, channel, payload, event)
 
