@@ -1,5 +1,5 @@
 ###
-# Copyright (c) 2013, Valentin Lorentz
+# Copyright (c) 2015, Valentin Lorentz
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,55 +28,32 @@
 
 ###
 
-import json
-import operator
-try:
-    from urllib import quote
-except:
-    from urllib.request import quote
-
-import supybot.utils as utils
-from supybot.commands import *
-import supybot.plugins as plugins
-import supybot.ircutils as ircutils
-import supybot.callbacks as callbacks
+import supybot.conf as conf
+import supybot.registry as registry
 try:
     from supybot.i18n import PluginInternationalization
-    _ = PluginInternationalization('AutoTrans')
+    _ = PluginInternationalization('AlternativeTo')
 except:
     # Placeholder that allows to run the plugin on a bot
     # without the i18n module
-    _ = lambda x:x
-
-class AutoTrans(callbacks.Plugin):
-    """Add the help for "@plugin help AutoTrans" here
-    This should describe *how* to use this plugin."""
-    threaded = True
-
-    def doPrivmsg(self, irc, msg):
-        channel = msg.args[0]
-        targets = list(map(lambda x:x.split(':'),
-            self.registryValue('queries', channel)))
-        whitelist = self.registryValue('authorWhitelist', channel)
-        if whitelist:
-            if all(not ircutils.hostmaskPatternEqual(pattern, msg.prefix)
-                   for pattern in whitelist):
-                return
-
-        cb = irc.getCallback('Google')
-        if targets and cb is None:
-            self.log.error('WikiTrans used but Google plugin not loaded.')
-            return
-
-        for lang in set(map(operator.itemgetter(1), targets)):
-            (text, language) = cb._translate('auto', lang, msg.args[1])
-            text = '<%s@%s> %s' % (msg.nick, channel, text)
-            for (nick, user_lang) in targets:
-                if user_lang != language and user_lang == lang:
-                    irc.reply(text, to=nick, private=True, notice=False)
+    _ = lambda x: x
 
 
-Class = AutoTrans
+def configure(advanced):
+    # This will be called by supybot to configure this module.  advanced is
+    # a bool that specifies whether the user identified themself as an advanced
+    # user or not.  You should effect your configuration by manipulating the
+    # registry as appropriate.
+    from supybot.questions import expect, anything, something, yn
+    conf.registerPlugin('AlternativeTo', True)
 
 
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+AlternativeTo = conf.registerPlugin('AlternativeTo')
+conf.registerChannelValue(AlternativeTo, 'snarf',
+    registry.Boolean(False, _("""Enable the URL snarfer.""")))
+conf.registerChannelValue(AlternativeTo, 'limit',
+    registry.NonNegativeInteger(0, _("""Maximum number of alternatives
+    to fetch. Set to 0 to disable this limit.""")))
+
+
+# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

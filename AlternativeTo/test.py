@@ -1,5 +1,5 @@
 ###
-# Copyright (c) 2013, Valentin Lorentz
+# Copyright (c) 2015, Valentin Lorentz
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,39 +28,23 @@
 
 ###
 
-import supybot.conf as conf
-import supybot.registry as registry
-try:
-    from supybot.i18n import PluginInternationalization
-    _ = PluginInternationalization('AutoTrans')
-except:
-    # Placeholder that allows to run the plugin on a bot
-    # without the i18n module
-    _ = lambda x:x
-
-def configure(advanced):
-    # This will be called by supybot to configure this module.  advanced is
-    # a bool that specifies whether the user identified himself as an advanced
-    # user or not.  You should effect your configuration by manipulating the
-    # registry as appropriate.
-    from supybot.questions import expect, anything, something, yn
-    conf.registerPlugin('AutoTrans', True)
+from supybot.test import *
 
 
-AutoTrans = conf.registerPlugin('AutoTrans')
-# This is where your configuration variables (if any) should go.  For example:
-# conf.registerGlobalValue(AutoTrans, 'someConfigVariableName',
-#     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
+class AlternativeToTestCase(PluginTestCase):
+    plugins = ('AlternativeTo',)
 
-conf.registerChannelValue(AutoTrans, 'queries',
-    registry.SpaceSeparatedListOfStrings([], _("""A list of people who
-    want to have a translated version of messages in a channel if the
-    messages are not in their native language.
-    Format: nick1:lang1 nick2:lang2.""")))
-conf.registerChannelValue(AutoTrans, 'authorWhitelist',
-    registry.SpaceSeparatedListOfStrings({}, _("""List of
-    hostmasks such that messages will be translated only if they match
-    one of the hostmasks. Empty list disables this check.""")))
+    def testBase(self):
+        self.assertRegexp('alternatives avidemux', 'handbrake')
+        self.assertRegexp('alternatives avidemux', 'lightworks')
+        self.assertRegexp('alternatives --license opensource avidemux', 'handbrake')
+        self.assertNotRegexp('alternatives --license opensource avidemux',
+                'lightworks')
+        self.assertResponse('alternatives ergjerpoergpg',
+                'Error: Software not found.')
+        self.assertResponse('alternatives lightdm',
+                'No alternative found.')
+        self.assertRegexp('alternatives Microsoft Word', 'LibreOffice')
 
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
