@@ -1,5 +1,5 @@
 ###
-# Copyright (c) 2014, Valentin Lorentz
+# Copyright (c) 2015, Valentin Lorentz
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,35 +28,11 @@
 
 ###
 
-import supybot.conf as conf
-import supybot.registry as registry
-try:
-    from supybot.i18n import PluginInternationalization
-    _ = PluginInternationalization('Markovgen')
-except:
-    # Placeholder that allows to run the plugin on a bot
-    # without the i18n module
-    _ = lambda x:x
-
-def configure(advanced):
-    # This will be called by supybot to configure this module.  advanced is
-    # a bool that specifies whether the user identified themself as an advanced
-    # user or not.  You should effect your configuration by manipulating the
-    # registry as appropriate.
-    from supybot.questions import expect, anything, something, yn
-    conf.registerPlugin('Markovgen', True)
+from supybot.test import *
 
 
-Markovgen = conf.registerPlugin('Markovgen')
-# This is where your configuration variables (if any) should go.  For example:
-# conf.registerGlobalValue(Markovgen, 'someConfigVariableName',
-#     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
-conf.registerChannelValue(Markovgen, 'probability',
-    registry.Probability(0, _("""Determine the probability the bot has to
-    reply to a message.""")))
-conf.registerChannelValue(Markovgen, 'stripRelayedNick',
-    registry.Boolean(True, _("""Determines whether the bot will strip
-    strings like <XXX> at the beginning of messages.""")))
+class MemoryProfilerTestCase(PluginTestCase):
+    plugins = ('MemoryProfiler',)
 
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

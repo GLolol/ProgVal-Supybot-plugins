@@ -1,5 +1,5 @@
 ###
-# Copyright (c) 2014, Valentin Lorentz
+# Copyright (c) 2015, Valentin Lorentz
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,11 +32,12 @@ import supybot.conf as conf
 import supybot.registry as registry
 try:
     from supybot.i18n import PluginInternationalization
-    _ = PluginInternationalization('Markovgen')
+    _ = PluginInternationalization('MemoryProfiler')
 except:
     # Placeholder that allows to run the plugin on a bot
     # without the i18n module
-    _ = lambda x:x
+    _ = lambda x: x
+
 
 def configure(advanced):
     # This will be called by supybot to configure this module.  advanced is
@@ -44,19 +45,13 @@ def configure(advanced):
     # user or not.  You should effect your configuration by manipulating the
     # registry as appropriate.
     from supybot.questions import expect, anything, something, yn
-    conf.registerPlugin('Markovgen', True)
+    conf.registerPlugin('MemoryProfiler', True)
 
 
-Markovgen = conf.registerPlugin('Markovgen')
+MemoryProfiler = conf.registerPlugin('MemoryProfiler')
 # This is where your configuration variables (if any) should go.  For example:
-# conf.registerGlobalValue(Markovgen, 'someConfigVariableName',
+# conf.registerGlobalValue(MemoryProfiler, 'someConfigVariableName',
 #     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
-conf.registerChannelValue(Markovgen, 'probability',
-    registry.Probability(0, _("""Determine the probability the bot has to
-    reply to a message.""")))
-conf.registerChannelValue(Markovgen, 'stripRelayedNick',
-    registry.Boolean(True, _("""Determines whether the bot will strip
-    strings like <XXX> at the beginning of messages.""")))
 
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

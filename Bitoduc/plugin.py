@@ -30,6 +30,8 @@
 ###
 
 import re
+import json
+import itertools
 import threading
 
 import supybot.utils as utils
@@ -45,8 +47,7 @@ except ImportError:
     # without the i18n module
     _ = lambda x: x
 
-SOURCE = 'https://raw.githubusercontent.com/p0nce/bitoduc.fr/master/www.bitoduc.fr/creuille.js'
-PATTERN = re.compile(r" *{anglais: '(?P<en>[^(]*)( \(.*\))?' *, francais: '(?P<fr>.*)'}.*")
+SOURCE = 'http://bitoduc.fr/traductions.json'
 
 class Bitoduc(callbacks.Plugin):
     """Interface à bitoduc.fr"""
@@ -55,13 +56,19 @@ class Bitoduc(callbacks.Plugin):
         super(Bitoduc, self).__init__(irc)
 
     def fetch_dict(self):
-        with self._lock:
-            self._dict = ircutils.IrcDict()
-            fd = utils.web.getUrlFd(SOURCE)
-            for line in fd:
-                matched = PATTERN.match(line.decode('utf8'))
-                if matched:
-                    self._dict[matched.group('en')] = matched.group('fr')
+        if self._lock.acquire(blocking=False):
+            try:
+                data = json.loads(utils.web.getUrl(SOURCE).decode())
+                self._dict = utils.InsensitivePreservingDict()
+                for d in itertools.chain(data['vrais mots'], data['faux mots']):
+                    self._dict[d['anglais'].split(' (')[0]] = d['francais']
+                self._re = re.compile(r'(\b%ss?\b)' % (
+                    r's?\b|\b'.join(map(re.escape, self._dict))))
+            finally:
+                self._lock.release()
+            return True
+        else:
+            return False
 
     @thread
     @wrap(['text'])
@@ -70,11 +77,40 @@ class Bitoduc(callbacks.Plugin):
 
         Renvoie la traduction française d’un mot."""
         if not hasattr(self, '_dict'):
-            self.fetch_dict()
+            r = self.fetch_dict()
+            if not r:
+                # _dict not yet available
+                return
         if word in self._dict:
             irc.reply(self._dict[word])
         else:
             irc.error('Pas de traduction')
+
+    def doPrivmsg(self, irc, msg):
+        if callbacks.addressed(irc.nick, msg): #message is not direct command
+            return
+        channel = msg.args[0]
+        if not self.registryValue('correct.enable', channel):
+            return
+        if not hasattr(self, '_re'):
+            threading.Thread(target=self.fetch_dict).start()
+            return
+        occurences = self._re.findall(msg.args[1])
+        if not occurences:
+            return
+        unique_occurences = []
+        occurences_set = set()
+        for occurence in occurences:
+            if not occurence in self._dict and \
+                    occurence.endswith('s') and occurence[0:-1] in self._dict:
+                occurence = occurence[0:-1]
+            if occurence not in occurences_set:
+                unique_occurences.append(occurence)
+                occurences_set.add(occurence)
+        irc.reply(format('Utilise %L plutôt que %L.',
+            ['« %s »' % self._dict[x] for x in unique_occurences],
+            ['« %s »' % x for x in unique_occurences])
+            .replace(' and ', ' et ')) # fix i18n
 
 
 Class = Bitoduc
